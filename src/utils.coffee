@@ -112,7 +112,7 @@ offsetDate = (date, seconds) ->
 
 centerTooltipOn = (tooltip, target, dir = 'center', offset = [0, 0]) ->
     rect = target.getBoundingClientRect()
-    tooltipRect = tooltip[0][0].getBoundingClientRect()
+    tooltipRect = tooltip._groups[0][0].getBoundingClientRect()
     if dir == 'left'
         xOff = rect.left
     else if dir == 'right'
