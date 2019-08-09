@@ -16,7 +16,7 @@ class PathDataset extends Dataset
         @element.selectAll('path').remove()
         @element.selectAll('.y.axis').remove()
 
-        line = d3.svg.line()
+        line = d3.line()
             .x( (a) => scales.x(new Date(a[0])) )
             .y( (a) => scales.y(a[1]) )
 

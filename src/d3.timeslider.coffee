@@ -46,7 +46,7 @@ class TimeSlider extends EventEmitter
         ### TODO: what does this do??? ###
 
         @useBBox = false
-        if @svg[0][0].clientWidth == 0
+        if @svg._groups[0][0].clientWidth == 0
             d3.select(@element).select('svg')
                 .append('rect').attr('width', '100%')
                 .attr('height', '100%')
@@ -55,15 +55,15 @@ class TimeSlider extends EventEmitter
 
         # default options and other variables for later
         if @useBBox
-            if @svg[0][0].getBoundingClientRect
-                @options.width = @svg[0][0].getBoundingClientRect().width
-                @options.height = @svg[0][0].getBoundingClientRect().height
+            if @svg._groups[0][0].getBoundingClientRect
+                @options.width = @svg._groups[0][0].getBoundingClientRect().width
+                @options.height = @svg._groups[0][0].getBoundingClientRect().height
             else
-                @options.width = @svg[0][0].getBBox().width
-                @options.height = @svg[0][0].getBBox().height
+                @options.width = @svg._groups[0][0].getBBox().width
+                @options.height = @svg._groups[0][0].getBBox().height
         else
-            @options.width = @svg[0][0].clientWidth
-            @options.height = @svg[0][0].clientHeight
+            @options.width = @svg._groups[0][0].clientWidth
+            @options.height = @svg._groups[0][0].clientHeight
         # offset whole timeslider to make space below for the brush
         if @options.alternativeBrush
             @options.height = @options.height - 18
@@ -107,37 +107,33 @@ class TimeSlider extends EventEmitter
         @datasets = {}
         @ordinal = 0
 
-        @simplifyDate = d3.time.format.utc("%d.%m.%Y - %H:%M:%S")
-
-        customFormats = d3.time.format.utc.multi([
-            [".%L", (d) -> d.getUTCMilliseconds() ]
-            [":%S", (d) -> d.getUTCSeconds() ],
-            ["%H:%M", (d) -> d.getUTCMinutes() ],
-            ["%H:%M", (d) -> d.getUTCHours() ],
-            ["%b %d %Y ", (d) ->d.getUTCDay() && d.getUTCDate() != 1 ],
-            ["%b %d %Y", (d) -> d.getUTCDate() != 1 ],
-            ["%B %Y", (d) -> d.getUTCMonth() ],
-            ["%Y", -> true ]
-        ])
+        @simplifyDate = d3.utcFormat("%d.%m.%Y - %H:%M:%S")
+        @customFormatter = (date) ->
+          (if d3.utcSecond(date) < date then d3.utcFormat(".%L") 
+          else if d3.utcMinute(date) < date then d3.utcFormat(":%S") 
+          else if d3.utcHour(date) < date then d3.utcFormat("%H:%M") 
+          else if d3.utcDay(date) < date then d3.utcFormat("%H:%M") 
+          else if d3.utcMonth(date) < date then d3.utcFormat("%b %d %Y") 
+          else if d3.utcYear(date) < date then d3.utcFormat("%B %Y") 
+          else d3.utcFormat("%Y"))(date)
 
         # scales
         @scales = {
-            x: d3.time.scale.utc()
+            x: d3.scaleUtc()
                 .domain([ @options.display.start, @options.display.end ])
                 .range([0, @options.width])
-            y: d3.scale.linear()
+            y: d3.scaleLinear()
                 .range([@options.height-29, 0])
         }
 
         # axis
         @axis = {
-            x: d3.svg.axis()
+            x: d3.axisBottom()
                 .scale(@scales.x)
-                .innerTickSize(@options.height - 15)
-                .tickFormat(customFormats)
-            y: d3.svg.axis()
+                .tickSizeInner(@options.height - 15)
+                .tickFormat(@customFormatter)
+            y: d3.axisLeft()
                 .scale(@scales.y)
-                .orient("left")
         }
 
         @svg.append('g')
@@ -181,7 +177,7 @@ class TimeSlider extends EventEmitter
                         .duration(100)
                         .style("opacity", .9)
             )
-            .on('brushend', =>
+            .on('end', =>
                 @brushing = false
                 @options.zoom.translate(@prevTranslate)
                 @options.zoom.scale(@prevScale)
@@ -293,7 +289,7 @@ class TimeSlider extends EventEmitter
         d3.select(window)
             .on('resize', =>
                 # update the width of the element and the scales
-                svg = d3.select(@element).select('svg.timeslider')[0][0]
+                svg = d3.select(@element).select('svg.timeslider')._groups[0][0]
 
                 if @useBBox
                     if svg.getBoundingClientRect
@@ -311,7 +307,7 @@ class TimeSlider extends EventEmitter
         minScale = (@options.display.start - @options.display.end) / (@options.domain.start - @options.domain.end)
         if !@options.constrain
             minScale = 0
-        # Calculate maxScale by gettting milliseconds difference  of the displayed
+        # Calculate maxScale by getting milliseconds difference  of the displayed
         # time domain (getting the seconds by dividing by 1000) and halving it.
         # This should allow to zoom into to see up to two seconds in the complete timeslider
         maxScale = Math.abs(@options.display.start - @options.display.end)/2000
@@ -344,7 +340,7 @@ class TimeSlider extends EventEmitter
                     @prevScale2 = @options.zoom.scale()
                     @prevDomain = @scales.x.domain()
             )
-            .on('zoomend', =>
+            .on('end', =>
                 display = @scales.x.domain()
                 @dispatch('displayChanged', {
                     start: display[0],
@@ -475,16 +471,16 @@ class TimeSlider extends EventEmitter
         # redraw brushes
         if @brushTooltip
             offheight = 0
-            if @svg[0][0].parentElement?
-                offheight = @svg[0][0].parentElement.offsetHeight
+            if @svg._groups[0][0].parentElement?
+                offheight = @svg._groups[0][0].parentElement.offsetHeight
             else
-                offheight = @svg[0][0].parentNode.offsetHeight
+                offheight = @svg._groups[0][0].parentNode.offsetHeight
 
             @tooltipBrushMin.html(@simplifyDate(@brush.extent()[0]))
             @tooltipBrushMax.html(@simplifyDate(@brush.extent()[1]))
 
-            centerTooltipOn(@tooltipBrushMin, d3.select(@element).select('g.brush .extent')[0][0], 'left', [0, -20])
-            centerTooltipOn(@tooltipBrushMax, d3.select(@element).select('g.brush .extent')[0][0], 'right')
+            centerTooltipOn(@tooltipBrushMin, d3.select(@element).select('g.brush .extent')._groups[0][0], 'left', [0, -20])
+            centerTooltipOn(@tooltipBrushMax, d3.select(@element).select('g.brush .extent')._groups[0][0], 'right')
 
         brushExtent = d3.select(@element).select('g.brush .extent')
         if parseFloat(brushExtent.attr('width')) < 1

@@ -184,14 +184,14 @@ class RecordDataset extends Dataset
         ticks = [new Date(ticks[0].getTime() - dx)]
             .concat(ticks)
             .concat([new Date(ticks[ticks.length - 1].getTime() + dx)])
-
-        bins = d3.layout.histogram()
-          .bins(ticks)
-          .range(scales.x.domain())
+#TODO REWORK check return value
+        bins = d3.histogram()
+          .thresholds(ticks)
+          .domain(scales.x.domain())
           .value((record) -> new Date(record[0].getTime() + (record[1].getTime() - record[0].getTime()) / 2))(records)
           .filter((b) -> b.length)
 
-        y = d3.scale.linear()
+        y = d3.scaleLinear()
           .domain([0, d3.max(bins, (d) -> d.length)])
           .range([2, options.height - 29])
           .clamp(true)

@@ -7,8 +7,6 @@ library. It is written in [CoffeeScript](http://coffeescript.org) and
 The software is licensed under a MIT compatible license, for more information see
 [License](License).
 
-For a list of recent changes, please see the [Changelog](Changelog).
-
 ## Usage
 
 Include the JavaScript and CSS files (and [D3.js](http://d3js.org/) as

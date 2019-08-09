@@ -11,8 +11,8 @@ class Dataset extends EventEmitter
         @currentSyncState = 0
         @lastSyncState = 0
         @recordHighlights = []
-        super(@element[0][0], 'syncing', 'synced')
-
+        super(@element._groups[0][0], 'syncing', 'synced')
+#TODO REWORK fix it
     getSource: ->
         @source
 

@@ -94,7 +94,7 @@ class BucketDataset extends RecordDataset
             return [ tick, end, bucket.count, definite ]
         )
 
-        y = d3.scale.linear()
+        y = d3.scaleLinear()
           .domain([0, d3.max(buckets, (d) -> d[2])])
           .range([2, height - 29])
           .clamp(true)
