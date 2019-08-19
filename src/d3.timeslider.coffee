@@ -159,13 +159,13 @@ class TimeSlider extends EventEmitter
             @brushTooltipOffset = offset
 
         # create the brush with all necessary event callbacks
-        @brush = d3.svg.brush()
-            .x(@scales.x)
-            .on('brushstart', =>
+        #TODO CHECK THIS WITH alternativeBrush=true
+        @brush = d3.brushX()
+            .on('start', =>
                 # deactivate zoom behavior
                 @brushing = true
-                @prevTranslate = @options.zoom.translate()
-                @prevScale = @options.zoom.scale()
+                @prevTranslate = @options.zoom.translateExtent()
+                @prevScale = @options.zoom.scaleExtent()
                 @selectionConstraint = null
 
                 # show the brush tooltips
@@ -179,8 +179,8 @@ class TimeSlider extends EventEmitter
             )
             .on('end', =>
                 @brushing = false
-                @options.zoom.translate(@prevTranslate)
-                @options.zoom.scale(@prevScale)
+                @options.zoom.translateExtent(@prevTranslate)
+                @options.zoom.scaleExtent(@prevScale)
 
                 @checkBrush()
                 @redraw()
@@ -312,18 +312,16 @@ class TimeSlider extends EventEmitter
         # This should allow to zoom into to see up to two seconds in the complete timeslider
         maxScale = Math.abs(@options.display.start - @options.display.end)/2000
 
-        @options.zoom = d3.behavior.zoom()
-            .x(@scales.x)
-            .size([@options.width, @options.height])
+        @options.zoom = d3.zoom()
             .scaleExtent([minScale, maxScale])
-            .on('zoomstart', =>
-                @prevScale2 = @options.zoom.scale()
+            .on('start', =>
+                @prevScale2 = @options.zoom.scaleExtent()
                 @prevDomain = @scales.x.domain()
             )
             .on('zoom', =>
                 if @brushing
-                    @options.zoom.scale(@prevScale)
-                    @options.zoom.translate(@prevTranslate)
+                    @options.zoom.scaleExtent(@prevScale)
+                    @options.zoom.translateExtent(@prevTranslate)
                 else
                     if @options.displayLimit != null and d3.event.scale < @prevScale2
                         [low, high] = @scales.x.domain()
@@ -337,7 +335,7 @@ class TimeSlider extends EventEmitter
                         [start, end] = @scales.x.domain()
 
                     @center(start, end, false)
-                    @prevScale2 = @options.zoom.scale()
+                    @prevScale2 = @options.zoom.scaleExtent()
                     @prevDomain = @scales.x.domain()
             )
             .on('end', =>
@@ -462,7 +460,7 @@ class TimeSlider extends EventEmitter
 
     redraw: ->
         # update brush
-        @brush.x(@scales.x).extent(@brush.extent())
+        #@brush.x(@scales.x).extent(@brush.extent())
 
         # repaint the axis and the brush
         d3.select(@element).select('g.mainaxis').call(@axis.x)
@@ -479,10 +477,10 @@ class TimeSlider extends EventEmitter
             @tooltipBrushMin.html(@simplifyDate(@brush.extent()[0]))
             @tooltipBrushMax.html(@simplifyDate(@brush.extent()[1]))
 
-            centerTooltipOn(@tooltipBrushMin, d3.select(@element).select('g.brush .extent')._groups[0][0], 'left', [0, -20])
-            centerTooltipOn(@tooltipBrushMax, d3.select(@element).select('g.brush .extent')._groups[0][0], 'right')
+            centerTooltipOn(@tooltipBrushMin, d3.select(@element).select('g.brush .selection')._groups[0][0], 'left', [0, -20])
+            centerTooltipOn(@tooltipBrushMax, d3.select(@element).select('g.brush .selection')._groups[0][0], 'right')
 
-        brushExtent = d3.select(@element).select('g.brush .extent')
+        brushExtent = d3.select(@element).select('g.brush .selection')
         if parseFloat(brushExtent.attr('width')) < 1
             brushExtent.attr('width', 1)
 
@@ -786,8 +784,8 @@ class TimeSlider extends EventEmitter
         if @options.displayLimit != null and (end - start) > @options.displayLimit * 1000
             start = offsetDate(end, -@options.displayLimit)
 
-        @options.zoom.scale((@options.display.end - @options.display.start) / (end - start))
-        @options.zoom.translate([ @options.zoom.translate()[0] - @scales.x(start), 0 ])
+        @options.zoom.scaleExtent((@options.display.end - @options.display.start) / (end - start))
+        @options.zoom.translateExtent([ @options.zoom.translateExtent()[0] - @scales.x(start), 0 ])
         @redraw()
         if doReload
             for dataset of @datasets
@@ -816,13 +814,13 @@ class TimeSlider extends EventEmitter
             start = offsetDate(end, -@options.displayLimit)
 
         d3.transition().duration(750).tween('zoom', =>
-            iScale = d3.interpolate(@options.zoom.scale(),
+            iScale = d3.interpolate(@options.zoom.scaleExtent(),
                 (@options.domain.end - @options.domain.start) / (end - start))
             return (t) =>
-                iPan = d3.interpolate(@options.zoom.translate()[0], @options.zoom.translate()[0] - @scales.x(start))
+                iPan = d3.interpolate(@options.zoom.translateExtent()[0], @options.zoom.translateExtent()[0] - @scales.x(start))
 
-                @options.zoom.scale(iScale(t))
-                @options.zoom.translate([ (iPan(t)), 0 ])
+                @options.zoom.scaleExtent(iScale(t))
+                @options.zoom.translateExtent([ (iPan(t)), 0 ])
 
                 # redraw
                 @redraw()

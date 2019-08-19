@@ -44,7 +44,7 @@ class Dataset extends EventEmitter
     doFetch: (start, end, params) ->
         @currentSyncState += 1
         syncState = @currentSyncState
-        @listeners.syncing()
+        @listeners._.syncing[0].value()
 
         fetched = (records) =>
             # only update the timeslider when the state is still valid
@@ -52,14 +52,14 @@ class Dataset extends EventEmitter
             if syncState == @currentSyncState
                 if not @cache
                     @records = @postprocess(records)
-                @listeners.synced()
+                @listeners._.synced[0].value()
 
         if @source
             source = @getSourceFunction(@source)
         # no source, simply call the callback with the static records and paths
         else
             @lastSyncState = syncState if syncState > @lastSyncState
-            @listeners.synced()
+            @listeners._.synced[0].value()
             return
 
         if @cache
@@ -81,7 +81,7 @@ class Dataset extends EventEmitter
                 @cache.reserve(interval...)
                 source(interval[0], interval[1], @sourceParams, (records) =>
                     @cache.add(interval[0], interval[1], @postprocess(records))
-                    @listeners.synced()
+                    @listeners._.synced[0].value()
                     summaryCallback()
                 )
 
